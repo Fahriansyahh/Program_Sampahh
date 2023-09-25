@@ -1,6 +1,6 @@
 const express = require("express");
 const route = express.Router();
-const { body } = require("express-validator");
+const { body, query } = require("express-validator");
 const Auth = require("../Controllers/ControlAuthentication");
 const { validateToken } = require("../Midleware/jwt");
 
@@ -8,7 +8,7 @@ const { validateToken } = require("../Midleware/jwt");
 
 route.post("/Auth/Login", Auth.Login);
 
-//!create
+// //!create
 route.post(
   "/Auth",
   [
@@ -21,14 +21,18 @@ route.post(
   ],
   Auth.Create
 );
-//!get all
+// //!get all
 route.get("/Auth", validateToken, Auth.getAll);
 
-//!update
+// //!update
+
 route.put(
-  "/Auth/:id",
+  "/Auth",
   validateToken,
   [
+    query("username")
+      .isLength({ min: 1, max: 12 })
+      .withMessage("Title too short. Enter a longer title!"),
     body("username")
       .isLength({ min: 1, max: 12 })
       .withMessage("username min 1 max 12"),
@@ -39,7 +43,19 @@ route.put(
   Auth.Update
 );
 
-//!hapus
-route.delete("/Auth/:idDelete", validateToken, Auth.Delete);
+// //!hapus
+route.delete(
+  "/Auth",
+  validateToken,
+  [
+    query("username")
+      .isLength({ min: 1, max: 12 })
+      .withMessage("Title too short. Enter a longer title!"),
+  ],
+  Auth.Delete
+);
+//! search
+
+route.get("/Auth/Search", validateToken, Auth.search);
 
 module.exports = route;

@@ -1,28 +1,28 @@
 const { validationResult, cookie } = require("express-validator");
-const {
-  users,
-  CreateUsers,
-  UpdateUser,
-  DeleteUser,
-} = require("../models/user");
+// const {
+//   users,
+//   CreateUsers,
+//   UpdateUser,
+//   DeleteUser,
+// } = require("../models/user");
 const bcrypt = require("bcrypt");
 const { createToken } = require("../Midleware/jwt");
+const { User } = require("../models");
+const { Sequelize } = require("sequelize");
 
 exports.Login = async (req, res, next) => {
   const username = req.body.username;
   const password = req.body.password;
 
   try {
-    const [data] = await users();
-    const acounts = data.filter((data) => {
-      return data.username === username;
-    });
-    if (acounts.length > 0 && acounts[0].password) {
-      bcrypt.compare(password, acounts[0].password, function (err, result) {
+    const user = await User.findOne({ where: { username: username } });
+    console.log(user);
+    if (user) {
+      bcrypt.compare(password, user.password, function (err, result) {
         if (!err) {
           if (result) {
             // Password sesuai, lakukan tindakan selanjutnya
-            const accessToken = createToken(acounts[0]);
+            const accessToken = createToken(user);
             res.cookie("accessToken", accessToken, {
               maxAge: 60 * 60 * 30, // Maksimum usia cookie dalam detik
               httpOnly: true, // Cookie hanya dapat diakses melalui HTTP (tidak dapat diakses melalui JavaScript)
@@ -33,7 +33,7 @@ exports.Login = async (req, res, next) => {
             });
 
             res.status(200).json({
-              message: "login successful",
+              message: "Login successful",
               status: 200,
             });
           } else {
@@ -53,15 +53,15 @@ exports.Login = async (req, res, next) => {
       });
     } else {
       res.status(500).json({
-        message: "Invalid username or password",
+        message: "Invalid username",
         status: 500,
       });
     }
   } catch (error) {
     console.error(error);
-    res.status(400).status(500).json({
-      error: "server error",
-      status: 400,
+    res.status(500).json({
+      error: "Server error",
+      status: 500,
     });
   }
 };
@@ -79,13 +79,11 @@ exports.Create = async (req, res, next) => {
       });
     }
 
-    const [data] = await users();
-    const username = body.username;
-    const accounts = data.filter((data) => {
-      return data.username === username;
+    const existingUser = await User.findOne({
+      where: { username: body.username },
     });
 
-    if (accounts.length === 0) {
+    if (!existingUser) {
       // Jika akun tidak ada, hash password dan simpan ke database
       bcrypt.hash(body.password, 10, async (err, hash) => {
         if (err) {
@@ -98,11 +96,14 @@ exports.Create = async (req, res, next) => {
 
         // Simpan akun baru ke database
         try {
-          await CreateUsers(body, hash);
-          body.password = hash;
+          const newUser = await User.create({
+            username: body.username,
+            password: hash,
+          });
+          delete newUser.dataValues.password;
           res.status(201).json({
             message: "Create Users Success",
-            data: body,
+            data: newUser,
             status: 201,
           });
         } catch (error) {
@@ -116,7 +117,6 @@ exports.Create = async (req, res, next) => {
     } else {
       res.status(401).json({
         message: "Username already exists",
-        data: body,
         status: 401,
       });
     }
@@ -128,66 +128,155 @@ exports.Create = async (req, res, next) => {
     });
   }
 };
+
 exports.getAll = async (req, res, next) => {
-  try {
-    const [data] = await users();
-    // Menghapus kolom 'password' dari objek data menggunakan spread operator
-    const responseData = data.map(({ password, ...rest }) => rest);
+  await User.findAll()
+    .then((response) => {
+      const data = response;
+      const responseData = data.map((data) => {
+        delete data.dataValues.password;
+        return data;
+      });
 
-    res.status(200).json({
-      data: responseData,
-      message: "get All",
-      status: 200,
+      res.status(200).json({
+        data: responseData,
+        message: "get All",
+        status: 200,
+      });
+    })
+    .catch((err) => {
+      res.status(400).status(500).json({
+        error: "server error",
+        status: 400,
+      });
     });
-  } catch (error) {
-    console.error(error);
-    res.status(400).status(500).json({
-      error: "server error",
-      status: 400,
-    });
-  }
 };
-
 exports.Update = async (req, res, next) => {
   const body = req.body;
-  const params = req.params.id;
+  const queryUsername = req.query.username;
   const errors = validationResult(req);
   try {
     if (errors.isEmpty()) {
-      await UpdateUser(body, params); // Menunggu hingga promise diselesaikan
-      res.status(200).json({
-        message: "Update User Success",
-        data: body,
-        status: 200,
+      bcrypt.hash(body.password, 10, async (err, hash) => {
+        if (err) {
+          return res.status(500).json({
+            message: "Hash error",
+            data: body,
+            status: 500,
+          });
+        } else {
+          const [updatedRowsCount] = await User.update(
+            {
+              username: body.username,
+              password: hash,
+            },
+            {
+              where: {
+                username: queryUsername,
+              },
+            }
+          );
+
+          if (updatedRowsCount > 0) {
+            res.status(200).json({
+              message: "Update User Success",
+              data: body,
+              status: 200,
+            });
+          } else {
+            res.status(404).json({
+              message: "User not found",
+              status: 404,
+            });
+          }
+        }
       });
     } else {
       res.status(401).json({
-        message: "validaton error",
+        message: "Validation error",
         data: errors.array(),
         status: 401,
       });
     }
   } catch (error) {
-    res.status(400).status(500).json({
-      error: "server error",
-      status: 400,
+    console.error(error);
+    res.status(500).json({
+      error: "Server error",
+      status: 500,
     });
   }
 };
 
 exports.Delete = async (req, res, next) => {
-  const params = req.params.idDelete;
+  const query = req.query.username;
+  console.log(query);
   try {
-    await DeleteUser(params);
-    res.status(200).json({
-      message: `Delete User Success`,
-      status: 200,
+    const deletesUser = await User.destroy({
+      where: {
+        username: query,
+      },
     });
-  } catch (error) {
-    console.error(error);
+    console.log(deletesUser);
+    if (deletesUser >= 1) {
+      res.status(200).json({
+        message: "Delete User Success",
+        status: 200,
+      });
+    } else {
+      res.status(404).json({
+        message: "User not found",
+        status: 404,
+      });
+    }
+  } catch (err) {
     res.status(400).json({
-      error: "Delete User failed",
+      error: "server error",
       status: 400,
+      message: err,
     });
   }
+};
+
+exports.search = async (req, res, next) => {
+  const search = req.query.search;
+
+  await User.findAll({
+    where: {
+      [Sequelize.Op.or]: [
+        {
+          username: {
+            [Sequelize.Op.like]: `%${search}%`,
+          },
+        },
+        {
+          password: {
+            [Sequelize.Op.like]: `%${search}%`,
+          },
+        },
+      ],
+    },
+  })
+    .then((response) => {
+      if (response.length > 0) {
+        res.status(200).json({
+          status: 200,
+          message: "search",
+          data: response,
+        });
+      } else {
+        res.status(401).json({
+          status: 200,
+          message: "search not found",
+          data: response,
+        });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(400).json({
+        error: "server error",
+        status: 400,
+        message: err,
+      });
+    });
 };
