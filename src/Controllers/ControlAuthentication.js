@@ -9,6 +9,7 @@ const bcrypt = require("bcrypt");
 const { createToken } = require("../Midleware/jwt");
 const { User } = require("../models");
 const { Sequelize } = require("sequelize");
+const logger = require("../../logger");
 
 exports.Login = async (req, res, next) => {
   const username = req.body.username;
@@ -22,6 +23,7 @@ exports.Login = async (req, res, next) => {
         if (!err) {
           if (result) {
             // Password sesuai, lakukan tindakan selanjutnya
+            logger.info("login success" + result);
             const accessToken = createToken(user);
             res.cookie("accessToken", accessToken, {
               maxAge: 60 * 60 * 30, // Maksimum usia cookie dalam detik
@@ -37,6 +39,7 @@ exports.Login = async (req, res, next) => {
               status: 200,
             });
           } else {
+            logger.warn("login error" + err);
             // Password tidak sesuai
             res.status(401).json({
               message: "Invalid password",
@@ -44,7 +47,8 @@ exports.Login = async (req, res, next) => {
             });
           }
         } else {
-          console.log(err); // Handle kesalahan yang mungkin terjadi saat membandingkan
+          console.log(err);
+          logger.error(err); // Handle kesalahan yang mungkin terjadi saat membandingkan
           res.status(500).json({
             message: "Error comparing passwords",
             status: 500,

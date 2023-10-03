@@ -10,6 +10,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const cookieSession = require("cookie-session");
 const Oauth = require("./src/Routes/Oauth");
+const typesofwaste = require("./src/Routes/typesofwaste");
+const transactions = require("./src/Routes/transactions");
 //!setup cors
 app.use(
   cors({
@@ -60,6 +62,8 @@ app.use(MidlewareAuth);
 
 app.use("/Jwt/v1", Auth);
 app.use("/auth", Oauth);
+app.use("/typesofwaste/v1", typesofwaste);
+app.use("/transactions/v1", transactions);
 //! setup Listen
 app.listen(4000, () => {
   console.log("open in browser");

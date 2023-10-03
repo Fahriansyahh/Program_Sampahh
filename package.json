@@ -1,7 +1,7 @@
 {
-  "name": "jwt",
+  "name": "server_program_sampah",
   "version": "1.0.0",
-  "description": "",
+  "description": "program ini adalah tes coding dari PT TransIndo Data Perkasa",
   "main": "index.js",
   "scripts": {
     "start": "nodemon",
@@ -18,12 +18,14 @@
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^6.8.3",
     "mysql2": "^3.6.0",
     "nodemon": "^3.0.1",
     "passport": "^0.5.3",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "react-router-dom": "^6.16.0",
-    "sequelize": "^6.33.0"
+    "sequelize": "^6.33.0",
+    "winston": "^3.10.0"
   }
 }
