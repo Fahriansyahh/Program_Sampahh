@@ -10,7 +10,7 @@ const validateToken = (req, res, next) => {
   console.log(accessToken); // Menggunakan notasi kurung siku (square brackets)
   if (!accessToken) {
     return res.status(401).json({
-      error: "User not authenticated",
+      error: "Token not authenticated ",
     });
   }
   try {

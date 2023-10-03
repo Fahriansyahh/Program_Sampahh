@@ -7,7 +7,7 @@ const typesOfWaste = require("../models/typesOfWaste");
 
 route.post(
   "/Create",
-  // validateToken,
+  validateToken,
   [
     body("garbagetypename")
       .isLength({ min: 1 })
@@ -40,7 +40,7 @@ route.put(
   typesofwaste.Update
 );
 route.delete(
-  "/Search",
+  "/Delete",
   validateToken,
   [
     query("search")
