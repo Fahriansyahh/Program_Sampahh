@@ -15,7 +15,7 @@ untuk menginstall semua package yang ada
 
 ## Api
 
-###AUTH
+### AUTH
 POST https://localhost:4000/Jwt/v1/Auth
 username 
 password
@@ -35,7 +35,7 @@ GET https://localhost:4000/logout
 
 GET https://localhost:4000/login/failed
 
-###user 
+### user 
 
 
 PUT https://localhost:4000/Jwt/v1/Auth?username=username
